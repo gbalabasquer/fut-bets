@@ -3,8 +3,9 @@ pragma solidity ^0.4.8;
 import "fut-token/fut.sol";
 
 contract FUTBetsEvents {
-    event Transfer(address indexed from, address indexed to, uint value);
-    event Approval( address indexed owner, address indexed spender, uint value);
+    event Match(uint indexed id, uint12 week, uint12 year, string local, string visitor, uint time);
+    event Bet(uint indexed id, uint indexed matchId, uint12 result, uint amount);
+    event Claim(uint indexed matchId, uint indexed betId);
 }
 
 contract FUTBets is FUTBetsEvents
@@ -58,6 +59,8 @@ contract FUTBets is FUTBetsEvents
         matches[id].amount[LOCAL] = 0;
         matches[id].amount[VISITOR] = 0;
         matches[id].amount[TIE] = 0;
+
+        Match(id, week, year, local, visitor, time);
     }
 
     function setMatchResult(uint id, uint12 result)
@@ -86,6 +89,8 @@ contract FUTBets is FUTBetsEvents
         matches[matchId].bets[id].paid = false;
         //TODO: Add safeAdd
         matches[matchId].amount[result] = matches[matchId].amount[result] + amount;
+
+        Bet(id, matchId, result, amount);
     }
 
     function claimPayment(uint matchId, uint betId) {
@@ -110,6 +115,8 @@ contract FUTBets is FUTBetsEvents
 
         matches[matchId].bets[betId].paid = true;
         FUTToken(token).transferFrom(this, matches[matchId].bets[betId].owner, payAmount);
+
+        Claim(matchId, betId);
     }
 
     function validResult internal(uint result) {
