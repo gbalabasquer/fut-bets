@@ -1,0 +1,3 @@
+[submodule ".dapple/packages/fut-token"]
+	path = .dapple/packages/fut-token
+	url = https://github.com/gbalabasquer/fut-token.git
