@@ -1,3 +1,6 @@
 [submodule ".dapple/packages/fut-token"]
 	path = .dapple/packages/fut-token
 	url = https://github.com/gbalabasquer/fut-token.git
+[submodule ".dapple/packages/ds-roles"]
+	path = .dapple/packages/ds-roles
+	url = https://github.com/nexusdev/ds-roles
