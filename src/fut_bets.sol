@@ -115,32 +115,31 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
             throw;
         }
 
-        var local = matches[matchId].amount[LOCAL];
-        var visitor = matches[matchId].amount[VISITOR];
-        var tie = matches[matchId].amount[TIE];
+        var localAmount = matches[matchId].amount[LOCAL];
+        var visitorAmount = matches[matchId].amount[VISITOR];
+        var tieAmount = matches[matchId].amount[TIE];
         uint betAmount = matches[matchId].bets[betId].amount;
 
-        assert(safeToAddThree(local, visitor, tie));
-        uint total = local + visitor + tie;
+        assert(safeToAddThree(localAmount, visitorAmount, tieAmount));
+        uint totalAmount = localAmount + visitorAmount + tieAmount;
 
         // Calculating payment for the winner
         uint payAmount = 0;
+        assert(safeToMul(betAmount, totalAmount));
+        
         if (matches[matchId].result == LOCAL) {
-            payAmount = (betAmount / local);
+            payAmount = betAmount * totalAmount / localAmount;
         } else if (matches[matchId].result == VISITOR) {
-            payAmount = (betAmount / visitor);
+            payAmount = betAmount * totalAmount / visitorAmount;
         } else if (matches[matchId].result == TIE) {
-            payAmount = (betAmount / tie);
+            payAmount = betAmount * totalAmount / tieAmount;
         }
-
-        assert(safeToMul(payAmount, total));
-        payAmount = payAmount * total;
         //
 
         // Bet set as paid
         matches[matchId].bets[betId].paid = true;
         // Transfering tokens to winner user
-        FUTToken(token).transferFrom(this, matches[matchId].bets[betId].owner, payAmount);
+        FUTToken(token).transfer(matches[matchId].bets[betId].owner, payAmount);
 
         LogClaim(matchId, betId);
     }
@@ -151,14 +150,37 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
         }
     }
 
-    function getMatchDetail(uint matchId) returns (uint, uint, uint, uint, uint, uint, uint) {
+    function getLastMatchId() returns (uint) {
+        return next - 1;
+    }
+
+    function getMatch(uint matchId) returns (uint, uint, string, string, uint, uint) {
         return (matches[matchId].week,
                 matches[matchId].year,
+                matches[matchId].local,
+                matches[matchId].visitor,
                 matches[matchId].time,
-                matches[matchId].result,
-                matches[matchId].amount[LOCAL],
+                matches[matchId].result
+                );
+    }
+
+    function getMatchBetsAmount(uint matchId) returns (uint, uint, uint) {
+        return (matches[matchId].amount[LOCAL],
                 matches[matchId].amount[VISITOR],
-                matches[matchId].amount[TIE]);
+                matches[matchId].amount[TIE]
+                );
+    }
+
+    function getLastBetId(uint matchId) returns (uint) {
+        return matches[matchId].next - 1;
+    }
+
+    function getBet(uint matchId, uint betId) returns (address, uint, uint, bool) {
+        return (matches[matchId].bets[betId].owner,
+                matches[matchId].bets[betId].result,
+                matches[matchId].bets[betId].amount,
+                matches[matchId].bets[betId].paid
+                );
     }
 
     function safeToAddThree(uint a, uint b, uint c) internal returns (bool) {
