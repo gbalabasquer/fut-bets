@@ -1,6 +1,6 @@
 pragma solidity ^0.4.8;
 
-import "fut-token/fut.sol";
+import "fut-token/fut_token.sol";
 import 'ds-base/base.sol';
 import "fut_bets_auth.sol";
 

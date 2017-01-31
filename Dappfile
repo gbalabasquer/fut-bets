@@ -16,3 +16,14 @@ environments:
   develop:
     objects: {}
     type: internal
+  ropsten:
+    objects:
+      futtoken:
+        value: '0xbbd88480ff3c308ce21b8a1752a93eb02459eb3b'
+        type: >-
+          FUTToken[04be4150c4a45ed60c45b0d78bbbb707c4a46c282dd07b48ab69f9c4d5782974]
+      futbets:
+        value: '0x9aa896522a6d73db2db75c5039fcbab444cc1803'
+        type: >-
+          FUTBets[b2129ea0350159338ae451263baf7aa174056a8305bb5c4ad6c552f89ae46c78]
+    type: ropsten
