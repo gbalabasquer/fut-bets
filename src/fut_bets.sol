@@ -4,38 +4,40 @@ import "fut-token/fut_token.sol";
 import 'ds-base/base.sol';
 import "fut_bets_auth.sol";
 
-contract FUTBetsEvents {
-    event LogMatch(uint indexed id, uint week, uint year, string local, string visitor, uint time);
-    event LogBet(uint indexed id, uint indexed matchId, uint result, uint amount);
+contract Definitions {
+    enum    MatchResult { NotSet, Local, Visitor, Tie }
+}
+
+contract FUTBetsEvents is Definitions {
+    event LogMatch(uint indexed id, string local, string visitor, uint time);
+    event LogBet(uint indexed id, uint indexed matchId, MatchResult result, uint amount);
     event LogClaim(uint indexed matchId, uint indexed betId);
 }
 
 contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
 {
-    uint                         public constant         LOCAL = 1;
-    uint                         public constant         VISITOR = 2;
-    uint                         public constant         TIE = 3;
+    // uint                         public constant         LOCAL = 1;
+    // uint                         public constant         VISITOR = 2;
+    // uint                         public constant         TIE = 3;
 
     address                      public                  token;
     mapping( uint => Match )     public                  matches;
     uint                         public                  next = 1;
 
     struct Match {
-        uint                        week;
-        uint                        year;
         string                      local;
         string                      visitor;
         uint                        time;
-        uint                        result;
+        MatchResult                 result;
         mapping( uint => Bet )      bets;
         uint                        next;
-        mapping( uint => uint )     amount;
+        mapping( uint8 => uint )     amount;
     }
 
     struct Bet {
         address     owner;
         uint        amount;
-        uint        result;   
+        MatchResult result;
         bool        paid;     
     }
 
@@ -43,7 +45,7 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
         token = t;
     }
 
-    function addMatch(uint week, uint year, string local, string visitor, uint time)
+    function addMatch(string local, string visitor, uint time)
     auth
     returns (uint id)
     {
@@ -52,23 +54,21 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
 
         next = next + 1;
 
-        matches[id].week = week;
-        matches[id].year = year;
         matches[id].local = local;
         matches[id].visitor = visitor;
-        matches[id].result = 0;
+        matches[id].result = MatchResult.NotSet;
         matches[id].time = time;
         matches[id].next = 1;
-        matches[id].amount[LOCAL] = 0;
-        matches[id].amount[VISITOR] = 0;
-        matches[id].amount[TIE] = 0;
+        matches[id].amount[uint8(MatchResult.Local)] = 0;
+        matches[id].amount[uint8(MatchResult.Visitor)] = 0;
+        matches[id].amount[uint8(MatchResult.Tie)] = 0;
 
-        LogMatch(id, week, year, local, visitor, time);
+        LogMatch(id, local, visitor, time);
 
         return id;
     }
 
-    function setMatchResult(uint id, uint result)
+    function setMatchResult(uint id, MatchResult result)
     auth
     {
         validResult(result);
@@ -76,7 +76,7 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
         matches[id].result = result;
     }
 
-    function addBet(uint matchId, uint result, uint amount)
+    function addBet(uint matchId, MatchResult result, uint amount)
     returns (uint id)
     {
         validResult(result);
@@ -100,8 +100,8 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
         matches[matchId].bets[id].amount = amount;
         matches[matchId].bets[id].paid = false;
 
-        assert(safeToAdd(matches[matchId].amount[result], amount));
-        matches[matchId].amount[result] = matches[matchId].amount[result] + amount;
+        assert(safeToAdd(matches[matchId].amount[uint8(result)], amount));
+        matches[matchId].amount[uint8(result)] = matches[matchId].amount[uint8(result)] + amount;
 
         LogBet(id, matchId, result, amount);
 
@@ -115,9 +115,9 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
             throw;
         }
 
-        var localAmount = matches[matchId].amount[LOCAL];
-        var visitorAmount = matches[matchId].amount[VISITOR];
-        var tieAmount = matches[matchId].amount[TIE];
+        var localAmount = matches[matchId].amount[uint8(MatchResult.Local)];
+        var visitorAmount = matches[matchId].amount[uint8(MatchResult.Visitor)];
+        var tieAmount = matches[matchId].amount[uint8(MatchResult.Tie)];
         uint betAmount = matches[matchId].bets[betId].amount;
 
         assert(safeToAddThree(localAmount, visitorAmount, tieAmount));
@@ -127,11 +127,11 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
         uint payAmount = 0;
         assert(safeToMul(betAmount, totalAmount));
         
-        if (matches[matchId].result == LOCAL) {
+        if (matches[matchId].result == MatchResult.Local) {
             payAmount = betAmount * totalAmount / localAmount;
-        } else if (matches[matchId].result == VISITOR) {
+        } else if (matches[matchId].result == MatchResult.Visitor) {
             payAmount = betAmount * totalAmount / visitorAmount;
-        } else if (matches[matchId].result == TIE) {
+        } else if (matches[matchId].result == MatchResult.Tie) {
             payAmount = betAmount * totalAmount / tieAmount;
         }
         //
@@ -144,8 +144,8 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
         LogClaim(matchId, betId);
     }
 
-    function validResult (uint result) internal {
-        if (result != LOCAL && result != VISITOR && result != TIE) {
+    function validResult (MatchResult result) internal {
+        if (result != MatchResult.Local && result != MatchResult.Visitor && result != MatchResult.Tie) {
             throw;
         }
     }
@@ -154,10 +154,8 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
         return next - 1;
     }
 
-    function getMatch(uint matchId) returns (uint, uint, string, string, uint, uint) {
-        return (matches[matchId].week,
-                matches[matchId].year,
-                matches[matchId].local,
+    function getMatch(uint matchId) returns (string, string, uint, MatchResult) {
+        return (matches[matchId].local,
                 matches[matchId].visitor,
                 matches[matchId].time,
                 matches[matchId].result
@@ -165,9 +163,9 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
     }
 
     function getMatchBetsAmount(uint matchId) returns (uint, uint, uint) {
-        return (matches[matchId].amount[LOCAL],
-                matches[matchId].amount[VISITOR],
-                matches[matchId].amount[TIE]
+        return (matches[matchId].amount[uint8(MatchResult.Local)],
+                matches[matchId].amount[uint8(MatchResult.Visitor)],
+                matches[matchId].amount[uint8(MatchResult.Tie)]
                 );
     }
 
@@ -175,7 +173,7 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
         return matches[matchId].next - 1;
     }
 
-    function getBet(uint matchId, uint betId) returns (address, uint, uint, bool) {
+    function getBet(uint matchId, uint betId) returns (address, MatchResult, uint, bool) {
         return (matches[matchId].bets[betId].owner,
                 matches[matchId].bets[betId].result,
                 matches[matchId].bets[betId].amount,

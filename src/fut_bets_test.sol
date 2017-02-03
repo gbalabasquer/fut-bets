@@ -3,7 +3,7 @@ pragma solidity ^0.4.5;
 import "dapple/test.sol";
 import "fut_bets.sol";
 
-contract FUTBetsTest is Test {
+contract FUTBetsTest is Test, Definitions {
     uint         constant TOWEI = 10**18;
     FUTToken     token;
     FUTBets      betsContract;
@@ -13,8 +13,6 @@ contract FUTBetsTest is Test {
     uint         betId3;
     uint         betId4;
     uint         betId5;
-    uint         week;
-    uint         year;
     string       local;
     string       visitor;
     uint         time;
@@ -67,42 +65,38 @@ contract FUTBetsTest is Test {
         user4._target(betsContract);
         user5._target(betsContract);
 
-        week = 5;
-        year = 2017;
         local = 'Velez';
         visitor = 'River';
         time = now + 10000;
 
         // Adding match
-        matchId = betsContract.addMatch(5, 2017, 'Velez', 'River', now + 10000);
+        matchId = betsContract.addMatch(local, visitor, now + 10000);
 
         // Adding first bet
-        betId = FUTBets(user1).addBet(matchId, 1, 10000 * TOWEI);
+        betId = FUTBets(user1).addBet(matchId, MatchResult.Local, 10000 * TOWEI);
     }
 
     function setBets() {
-        betId2 = FUTBets(user2).addBet(matchId, 2, 5000 * TOWEI);
-        betId3 = FUTBets(user3).addBet(matchId, 3, 7500 * TOWEI);
-        betId4 = FUTBets(user4).addBet(matchId, 1, 2500 * TOWEI);
-        betId5 = FUTBets(user5).addBet(matchId, 3, 1000 * TOWEI);
+        betId2 = FUTBets(user2).addBet(matchId, MatchResult.Visitor, 5000 * TOWEI);
+        betId3 = FUTBets(user3).addBet(matchId, MatchResult.Tie, 7500 * TOWEI);
+        betId4 = FUTBets(user4).addBet(matchId, MatchResult.Local, 2500 * TOWEI);
+        betId5 = FUTBets(user5).addBet(matchId, MatchResult.Tie, 1000 * TOWEI);
     }
 
     function testGetMatch() {
-        var (weekB, yearB, localB, visitorB, timeB, result) = betsContract.getMatch(matchId);
+        var (localB, visitorB, timeB, result) = betsContract.getMatch(matchId);
 
-        assertEq(weekB, week);
-        assertEq(yearB, year);
-        // assertEq(localB, local);
-        // assertEq(visitorB, visitor);
+        //assertEq(localB, local);
+        //assertEq(visitorB, visitor);
         assertEq(timeB, time);
-        assertEq(result, 0);
+        assertEq(uint(result), uint(MatchResult.NotSet));
     }
 
     function testGetBet() {
         var (owner, result, amount, paid) = betsContract.getBet(matchId, betId);
 
         assertEq(owner, user1);
-        assertEq(result, 1);
+        assertEq(uint(result), uint(MatchResult.Local));
         assertEq(amount, 10000 * TOWEI);
         assertEq(paid, false);
     }
@@ -123,7 +117,7 @@ contract FUTBetsTest is Test {
         uint balance = token.balanceOf(user1);
         assertEq(balance, 10000 * TOWEI);
 
-        betsContract.setMatchResult(matchId, 1);
+        betsContract.setMatchResult(matchId, MatchResult.Local);
         betsContract.claimPayment(matchId, betId);
 
         balance = token.balanceOf(user1);
@@ -131,12 +125,12 @@ contract FUTBetsTest is Test {
     }
 
     function testFailNotEnoughToken() {
-        betId = FUTBets(user1).addBet(matchId, 1, 10001 * TOWEI);
+        betId = FUTBets(user1).addBet(matchId, MatchResult.Local, 10001 * TOWEI);
     }
 
     function testFailMatchExpired() {
-        uint matchId2 = betsContract.addMatch(5, 2017, 'Velez', 'River', now - 1);
-        FUTBets(user1).addBet(matchId2, 1, 100 * TOWEI);
+        uint matchId2 = betsContract.addMatch(local, visitor, now - 1);
+        FUTBets(user1).addBet(matchId2, MatchResult.Local, 100 * TOWEI);
     }
 
     function testFailClaimNoResult() {
@@ -145,12 +139,12 @@ contract FUTBetsTest is Test {
 }
 
 
-contract FakePerson is Tester {
+contract FakePerson is Tester, Definitions {
     function approve(address who, uint howMuch) returns (bool) {
         return FUTToken(_t).approve(who, howMuch);
     }
 
-    function addBet(uint matchId, uint result, uint amount) returns (uint) {
+    function addBet(uint matchId, MatchResult result, uint amount) returns (uint) {
         return FUTBets(_t).addBet(matchId, result, amount);
     }
 }
