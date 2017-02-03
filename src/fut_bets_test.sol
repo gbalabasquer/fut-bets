@@ -83,6 +83,18 @@ contract FUTBetsTest is Test, Definitions {
         betId5 = FUTBets(user5).addBet(matchId, MatchResult.Tie, 1000 * TOWEI);
     }
 
+    function testEnum() {
+        var enNotSet = uint(MatchResult.NotSet);
+        var enLocal = uint(MatchResult.Local);
+        var enVisitor = uint(MatchResult.Visitor);
+        var enTie = uint(MatchResult.Tie);
+
+        assertEq(enNotSet, 0);
+        assertEq(enLocal, 1);
+        assertEq(enVisitor, 2);
+        assertEq(enTie, 3);
+    }
+
     function testGetMatch() {
         var (localB, visitorB, timeB, result) = betsContract.getMatch(matchId);
 
