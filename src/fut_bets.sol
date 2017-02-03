@@ -181,6 +181,12 @@ contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
                 );
     }
 
+    function transferToken(address t, uint quantity)
+    auth
+    {
+        FUTToken(t).transfer(msg.sender, quantity);
+    }
+
     function safeToAddThree(uint a, uint b, uint c) internal returns (bool) {
         if (!safeToAdd(a, b)) {
             return false;

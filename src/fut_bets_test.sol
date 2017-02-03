@@ -65,8 +65,8 @@ contract FUTBetsTest is Test, Definitions {
         user4._target(betsContract);
         user5._target(betsContract);
 
-        local = 'Velez';
-        visitor = 'River';
+        local = "Velez";
+        visitor = "River";
         time = now + 10000;
 
         // Adding match
