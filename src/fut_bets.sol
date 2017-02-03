@@ -16,10 +16,6 @@ contract FUTBetsEvents is Definitions {
 
 contract FUTBets is FUTBetsRoleAuth, DSBase, FUTBetsEvents
 {
-    // uint                         public constant         LOCAL = 1;
-    // uint                         public constant         VISITOR = 2;
-    // uint                         public constant         TIE = 3;
-
     address                      public                  token;
     mapping( uint => Match )     public                  matches;
     uint                         public                  next = 1;
